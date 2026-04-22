@@ -1,9 +1,15 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen } from '@testing-library/react-native';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import ArticleListScreen from '../ArticleListScreen';
 import { NavigationContainer } from '@react-navigation/native';
+
+jest.mock('../../api/articlesApi', () => ({
+  articlesApi: {
+    getTopArticles: jest.fn(),
+  },
+}));
 
 const mockStore = configureStore([]);
 
