@@ -1,97 +1,97 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# 📰 Hacker News App - React Native Assessment
 
-# Getting Started
+A production-grade React Native application displaying top stories from Hacker News, featuring a feature-based architecture, Redux state management, and offline awareness.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 🚀 Key Features
 
-## Step 1: Start Metro
+- **Top Stories Feed**: Fetches real-time data from Hacker News API.
+- **Advanced Filtering**: Filters for 'stories' with valid URLs only.
+- **Smart Search**: Debounced client-side search across titles and authors.
+- **Bookmark System**: Save full articles for offline reading, persisted via `AsyncStorage`.
+- **Performance Optimized**: Uses `getItemLayout`, `React.memo`, and `useMemo` for 60fps scrolling.
+- **Offline Awareness**: Real-time connection monitoring with a non-intrusive status banner.
+- **Deep Linking**: Share articles directly or open them in the system browser.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+---
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+## 🛠 Architecture & Tech Stack
 
-```sh
-# Using npm
-npm start
+### 📂 Feature-Based Structure
+The project follows a **Feature-First** architecture to ensure scalability:
+- `src/features/articles`: Logic and UI for the main news feed.
+- `src/features/bookmarks`: Persistence and management of saved stories.
+- `src/navigation`: App-wide routing configuration.
+- `src/shared`: Generic components like `OfflineBanner`.
+- `src/utils`: Reusable helpers for formatting and data parsing.
 
-# OR using Yarn
-yarn start
-```
+### 🧠 State Management: Redux Toolkit (RTK)
+**Decision**: I chose Redux Toolkit over Zustand or Context API.
+- **Why?**: RTK provides a predictable state container with built-in support for async logic (Thunks) and deep integration with DevTools. For a news app where multiple features (List, Details, Bookmarks) share data, RTK's centralized store ensures a single source of truth.
+- **Full Article Persistence**: We store the entire `Article` object in Bookmarks rather than just the ID. This allows for **instant UI rendering** and **offline viewing** of saved articles without re-fetching from the network.
 
-## Step 2: Build and run your app
+---
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+## ⚖️ Trade-offs & Decisions
 
-### Android
+### 1. No Pagination
+- **Trade-off**: The app fetches the top 20 stories at once.
+- **Reasoning**: Given the assessment requirement for exactly 20 items, infinite scroll was unnecessary. In a production app, I would implement `onEndReached` with cursor-based pagination.
 
-```sh
-# Using npm
-npm run android
+### 2. Parallel API Calls (`Promise.all`)
+- **Trade-off**: We fire 20+ detail requests simultaneously.
+- **Reasoning**: HN API requires a separate call per item. Parallelizing these reduces total latency but increases initial network spike.
+- **Improvement**: Implementing a caching layer or using RTK Query would mitigate redundant requests.
 
-# OR using Yarn
-yarn android
-```
+---
 
-### iOS
+## 🧠 Technical Deep Dive: Interview Questions
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+### Q: Bridge vs JSI?
+- **Bridge**: The legacy architecture where JS and Native communicate via asynchronous JSON messages serialized over a "bridge". It’s often a bottleneck for high-frequency data (like animations).
+- **JSI (JavaScript Interface)**: The new architecture (part of Fabric/TurboModules). It allows JS to hold a reference to C++ Host Objects, enabling **synchronous** communication. This eliminates the serialization overhead and allows for much smoother interactions.
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+### Q: FlatList Performance?
+To achieve 60fps in a list:
+- **`getItemLayout`**: Skips the need for the list to measure items dynamically (major performance gain for fixed-height items).
+- **`keyExtractor`**: Ensures React correctly identifies which items changed, avoiding total re-renders.
+- **`windowSize` / `initialNumToRender`**: Controls how many items are kept in memory.
+- **`removeClippedSubviews`**: Unmounts components that are off-screen.
 
-```sh
-bundle install
-```
+### Q: When to use `useMemo` and `useCallback`?
+- **`useMemo`**: Used when you have expensive calculations (like our filtering/sorting logic) that should only re-run when specific dependencies change.
+- **`useCallback`**: Used to maintain referential identity of functions across renders. This is crucial when passing functions to `React.memo` components (like our `renderItem` or `ArticleItem`) to prevent them from re-rendering just because a parent's function was re-created.
 
-Then, and every time you update your native dependencies, run:
+### Q: State Management Comparison?
+- **Redux**: Best for complex, global state with many interacting features. Great for debugging.
+- **Zustand**: Lightweight, less boilerplate, great for simpler apps or if "simplicity" is the priority.
+- **Context API**: Best for static global data (Themes, Auth User). Not ideal for frequently changing state due to "unnecessary re-render" issues in deeply nested trees.
 
-```sh
-bundle exec pod install
-```
+### Q: Offline-First Strategy?
+A robust strategy includes:
+1. **Caching**: Storing API responses (using something like `redux-persist` or `RTK Query`).
+2. **Optimistic Updates**: Updating the UI immediately and syncing with the server when back online.
+3. **Queueing**: If a user bookmarks while offline, we queue the action and process it when connectivity is restored.
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+---
 
-```sh
-# Using npm
-npm run ios
+## 📈 Future Improvements
+1. **RTK Query Migration**: To handle caching and automated re-fetching out of the box.
+2. **Skeleton Screens**: Replace the `ActivityIndicator` with animated skeleton loaders for better perceived performance.
+3. **Unit Test Coverage**: Expand tests to cover the UI layer and navigation transitions.
 
-# OR using Yarn
-yarn ios
-```
+---
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## 🛠 Setup & Installation
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+1. **Clone & Install**:
+   ```sh
+   npm install
+   ```
+2. **Run Android**:
+   ```sh
+   npx react-native run-android
+   ```
+3. **Run iOS**:
+   ```sh
+   npx react-native run-ios
+   ```

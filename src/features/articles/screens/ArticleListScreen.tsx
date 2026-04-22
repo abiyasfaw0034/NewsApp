@@ -16,6 +16,45 @@ import { useArticles, useProcessedArticles } from '../hooks/useArticles';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { formatRelativeTime, getDomain, getFaviconUrl } from '../../../utils/helpers';
 
+/**
+ * NOTE ON SCROLL POSITION AWARENESS:
+ * React Navigation's Native Stack Navigator automatically preserves the scroll position 
+ * of the FlatList when navigating back from the Detail screen.
+ * For more complex scenarios (e.g. state-driven position restoration), 
+ * one would use the 'onScroll' prop to save the offset in a Ref or state, 
+ * and 'scrollToOffset' on mount.
+ */
+
+const ITEM_HEIGHT = 120;
+
+const ArticleItem = React.memo(({ item, onPress }: { item: any; onPress: () => void }) => {
+  const domain = getDomain(item.url);
+  const faviconUrl = getFaviconUrl(item.url);
+  
+  return (
+    <TouchableOpacity 
+      style={[styles.item, { height: ITEM_HEIGHT }]}
+      onPress={onPress}
+    >
+      <View style={styles.itemHeader}>
+        {faviconUrl && (
+          <Image source={{ uri: faviconUrl }} style={styles.favicon} />
+        )}
+        <Text style={styles.domain}>{domain}</Text>
+        <Text style={styles.dot}>•</Text>
+        <Text style={styles.time}>{formatRelativeTime(item.time)}</Text>
+      </View>
+      
+      <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+      
+      <View style={styles.footer}>
+        <Text style={styles.info}>by {item.by}</Text>
+        <Text style={styles.info}>Score: {item.score}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
 export default function ArticleListScreen() {
   const navigation = useNavigation<any>();
   
@@ -38,12 +77,10 @@ export default function ArticleListScreen() {
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const debouncedSearch = useDebounce(localSearch, 500);
 
-  // 1. Component decides when to fetch
   useEffect(() => {
     fetchArticles();
   }, [fetchArticles]);
 
-  // 2. Sync debounced search to Redux (fixed dependencies)
   useEffect(() => {
     updateSearch(debouncedSearch);
   }, [debouncedSearch, updateSearch]);
@@ -51,6 +88,13 @@ export default function ArticleListScreen() {
   const clearSearch = () => {
     setLocalSearch('');
   };
+
+  const renderItem = React.useCallback(({ item }: { item: any }) => (
+    <ArticleItem 
+      item={item} 
+      onPress={() => navigation.navigate('Detail', { article: item })} 
+    />
+  ), [navigation]);
 
   if (loading && rawArticles.length === 0) {
     return (
@@ -109,6 +153,12 @@ export default function ArticleListScreen() {
       <FlatList
         data={processedArticles}
         keyExtractor={(item) => item.id.toString()}
+        renderItem={renderItem}
+        getItemLayout={(_, index) => ({
+          length: ITEM_HEIGHT,
+          offset: ITEM_HEIGHT * index,
+          index,
+        })}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={fetchArticles} />
         }
@@ -123,33 +173,6 @@ export default function ArticleListScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item }) => {
-          const domain = getDomain(item.url);
-          const faviconUrl = getFaviconUrl(item.url);
-          
-          return (
-            <TouchableOpacity 
-              style={styles.item}
-              onPress={() => navigation.navigate('Detail', { article: item })}
-            >
-              <View style={styles.itemHeader}>
-                {faviconUrl && (
-                  <Image source={{ uri: faviconUrl }} style={styles.favicon} />
-                )}
-                <Text style={styles.domain}>{domain}</Text>
-                <Text style={styles.dot}>•</Text>
-                <Text style={styles.time}>{formatRelativeTime(item.time)}</Text>
-              </View>
-              
-              <Text style={styles.title}>{item.title}</Text>
-              
-              <View style={styles.footer}>
-                <Text style={styles.info}>by {item.by}</Text>
-                <Text style={styles.info}>Score: {item.score}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        }}
       />
     </View>
   );

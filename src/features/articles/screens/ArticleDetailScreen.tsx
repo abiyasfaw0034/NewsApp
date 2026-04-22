@@ -1,18 +1,16 @@
-import React from 'react';
-import { View, Text, Button, StyleSheet, ScrollView, Linking, Image } from 'react-native';
+import React, { useLayoutEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Linking, Image, TouchableOpacity, Share } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { toggleBookmark } from '../../bookmarks/store/bookmarksSlice';
-import { RootState } from '../../../app/store';
+import { addBookmark, removeBookmark } from '../../bookmarks/store/bookmarksSlice';
+import { RootState, AppDispatch } from '../../../app/store';
 import { formatRelativeTime, getDomain, getFaviconUrl } from '../../../utils/helpers';
 
-export default function ArticleDetailScreen({ route }: any) {
+export default function ArticleDetailScreen({ route, navigation }: any) {
   const { article } = route.params;
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const bookmarks = useSelector((state: RootState) => state.bookmarks.bookmarks);
 
-  const isBookmarked = bookmarks.includes(article.id);
-  const domain = getDomain(article.url);
-  const faviconUrl = getFaviconUrl(article.url);
+  const isBookmarked = bookmarks.some(b => b.id === article.id);
 
   const openUrl = () => {
     if (article.url) {
@@ -20,14 +18,49 @@ export default function ArticleDetailScreen({ route }: any) {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `${article.title}\n${article.url}`,
+        url: article.url,
+        title: article.title,
+      });
+    } catch (error: any) {
+      console.error(error.message);
+    }
+  };
+
+  const handleBookmark = () => {
+    if (isBookmarked) {
+      dispatch(removeBookmark(article.id));
+    } else {
+      dispatch(addBookmark(article));
+    }
+  };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={handleBookmark} style={styles.headerButton}>
+            <Text style={{ fontSize: 24 }}>{isBookmarked ? '🔖' : '📑'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleShare} style={styles.headerButton}>
+            <Text style={{ fontSize: 24 }}>📤</Text>
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, isBookmarked, article]);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.meta}>
-          {faviconUrl && (
-            <Image source={{ uri: faviconUrl }} style={styles.favicon} />
+          {getFaviconUrl(article.url) && (
+            <Image source={{ uri: getFaviconUrl(article.url)! }} style={styles.favicon} />
           )}
-          <Text style={styles.domain}>{domain}</Text>
+          <Text style={styles.domain}>{getDomain(article.url)}</Text>
           <Text style={styles.dot}>•</Text>
           <Text style={styles.time}>{formatRelativeTime(article.time)}</Text>
         </View>
@@ -40,16 +73,11 @@ export default function ArticleDetailScreen({ route }: any) {
         </View>
         
         <View style={styles.buttonContainer}>
-          <Button
-            title={isBookmarked ? 'Remove Bookmark' : 'Add Bookmark'}
-            onPress={() => dispatch(toggleBookmark(article.id))}
-            color={isBookmarked ? '#ff4444' : '#007AFF'}
-          />
-          <View style={styles.mt10}>
-            {article.url ? (
-              <Button title="Open in Browser" onPress={openUrl} color="#5856D6" />
-            ) : null}
-          </View>
+          {article.url ? (
+            <TouchableOpacity style={styles.primaryButton} onPress={openUrl}>
+              <Text style={styles.primaryButtonText}>Open in Browser</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
     </ScrollView>
@@ -114,7 +142,23 @@ const styles = StyleSheet.create({
   buttonContainer: {
     marginTop: 10,
   },
-  mt10: {
-    marginTop: 10,
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  headerButton: {
+    marginLeft: 15,
+  },
+  primaryButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
