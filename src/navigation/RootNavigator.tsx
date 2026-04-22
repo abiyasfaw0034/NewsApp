@@ -1,8 +1,8 @@
 import React from 'react';
-import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 import ArticleListScreen from '../features/articles/screens/ArticleListScreen';
 import ArticleDetailScreen from '../features/articles/screens/ArticleDetailScreen';
@@ -23,14 +23,14 @@ export default function RootNavigator() {
     <NavigationContainer>
       <Tab.Navigator
         screenOptions={({ route }) => ({
-          tabBarIcon: ({ focused }) => {
-            let icon;
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName = '';
             if (route.name === 'Home') {
-              icon = focused ? '📰' : '📰';
+              iconName = focused ? 'newspaper' : 'newspaper-outline';
             } else if (route.name === 'Bookmarks') {
-              icon = focused ? '🔖' : '🔖';
+              iconName = focused ? 'bookmarks' : 'bookmarks-outline';
             }
-            return <Text style={{ fontSize: 20 }}>{icon}</Text>;
+            return <Icon name={iconName} size={size} color={color} />;
           },
           tabBarActiveTintColor: '#007AFF',
           tabBarInactiveTintColor: 'gray',

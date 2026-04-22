@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addBookmark, removeBookmark } from '../../bookmarks/store/bookmarksSlice';
 import { RootState, AppDispatch } from '../../../app/store';
 import { formatRelativeTime, getDomain, getFaviconUrl } from '../../../utils/helpers';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 export default function ArticleDetailScreen({ route, navigation }: any) {
   const { article } = route.params;
@@ -43,10 +44,14 @@ export default function ArticleDetailScreen({ route, navigation }: any) {
       headerRight: () => (
         <View style={styles.headerButtons}>
           <TouchableOpacity onPress={handleBookmark} style={styles.headerButton}>
-            <Text style={{ fontSize: 24 }}>{isBookmarked ? '🔖' : '📑'}</Text>
+            <Icon 
+              name={isBookmarked ? 'bookmark' : 'bookmark-outline'} 
+              size={24} 
+              color="#007AFF" 
+            />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleShare} style={styles.headerButton}>
-            <Text style={{ fontSize: 24 }}>📤</Text>
+            <Icon name="share-outline" size={24} color="#007AFF" />
           </TouchableOpacity>
         </View>
       ),
