@@ -2,6 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../../app/store';
 import { fetchArticles, setSearchQuery, setSort } from '../store/articlesSlice';
+import { Article } from '../types';
 
 /**
  * Hook for basic article data and actions
@@ -39,16 +40,15 @@ export function useArticles() {
 /**
  * Hook for processing (filtering/sorting) articles
  */
-export function useProcessedArticles(articles: any[], searchQuery: string, sort: 'score' | 'time') {
+export function useProcessedArticles(articles: Article[], searchQuery: string, sort: 'score' | 'time') {
   return useMemo(() => {
-    let filtered = articles;
-    if (searchQuery) {
-      filtered = articles.filter(
-        a =>
-          a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.by.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
-    }
+    const filtered = searchQuery
+      ? articles.filter(
+          a =>
+            a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            a.by.toLowerCase().includes(searchQuery.toLowerCase()),
+        )
+      : articles;
 
     return [...filtered].sort((a, b) => {
       if (sort === 'score') return b.score - a.score;

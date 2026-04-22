@@ -8,11 +8,13 @@ import {
   ActivityIndicator, 
   TextInput,
   RefreshControl,
-  Button
+  Button,
+  Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useArticles, useProcessedArticles } from '../hooks/useArticles';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { formatRelativeTime, getDomain, getFaviconUrl } from '../../../utils/helpers';
 
 export default function ArticleListScreen() {
   const navigation = useNavigation<any>();
@@ -46,6 +48,10 @@ export default function ArticleListScreen() {
     updateSearch(debouncedSearch);
   }, [debouncedSearch, updateSearch]);
 
+  const clearSearch = () => {
+    setLocalSearch('');
+  };
+
   if (loading && rawArticles.length === 0) {
     return (
       <View style={styles.center}>
@@ -66,28 +72,38 @@ export default function ArticleListScreen() {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search articles..."
-        value={localSearch}
-        onChangeText={setLocalSearch}
-        clearButtonMode="while-editing"
-      />
+      <View style={styles.header}>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search articles..."
+            placeholderTextColor="#8E8E93"
+            value={localSearch}
+            onChangeText={setLocalSearch}
+            clearButtonMode="while-editing"
+          />
+          {localSearch.length > 0 && (
+            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+              <Text style={styles.clearButtonText}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-      <View style={styles.sortContainer}>
-        <Text style={styles.sortLabel}>Sort by:</Text>
-        <TouchableOpacity 
-          style={[styles.sortButton, sort === 'score' && styles.activeSort]} 
-          onPress={() => updateSort('score')}
-        >
-          <Text style={[styles.sortButtonText, sort === 'score' && styles.activeSortText]}>Score</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.sortButton, sort === 'time' && styles.activeSort]} 
-          onPress={() => updateSort('time')}
-        >
-          <Text style={[styles.sortButtonText, sort === 'time' && styles.activeSortText]}>Time</Text>
-        </TouchableOpacity>
+        <View style={styles.sortContainer}>
+          <Text style={styles.sortLabel}>Sort by:</Text>
+          <TouchableOpacity 
+            style={[styles.sortButton, sort === 'score' && styles.activeSort]} 
+            onPress={() => updateSort('score')}
+          >
+            <Text style={[styles.sortButtonText, sort === 'score' && styles.activeSortText]}>Score</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.sortButton, sort === 'time' && styles.activeSort]} 
+            onPress={() => updateSort('time')}
+          >
+            <Text style={[styles.sortButtonText, sort === 'time' && styles.activeSortText]}>Time</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       
       <FlatList
@@ -99,22 +115,41 @@ export default function ArticleListScreen() {
         ListEmptyComponent={
           <View style={styles.center}>
             <Text style={styles.emptyText}>
-              {loading ? 'Updating...' : 'No articles found'}
+              {loading 
+                ? 'Updating...' 
+                : searchQuery 
+                  ? `No results for "${searchQuery}"`
+                  : 'No articles found'}
             </Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={styles.item}
-            onPress={() => navigation.navigate('Detail', { article: item })}
-          >
-            <Text style={styles.title}>{item.title}</Text>
-            <View style={styles.footer}>
-              <Text style={styles.info}>by {item.by}</Text>
-              <Text style={styles.info}>Score: {item.score}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          const domain = getDomain(item.url);
+          const faviconUrl = getFaviconUrl(item.url);
+          
+          return (
+            <TouchableOpacity 
+              style={styles.item}
+              onPress={() => navigation.navigate('Detail', { article: item })}
+            >
+              <View style={styles.itemHeader}>
+                {faviconUrl && (
+                  <Image source={{ uri: faviconUrl }} style={styles.favicon} />
+                )}
+                <Text style={styles.domain}>{domain}</Text>
+                <Text style={styles.dot}>•</Text>
+                <Text style={styles.time}>{formatRelativeTime(item.time)}</Text>
+              </View>
+              
+              <Text style={styles.title}>{item.title}</Text>
+              
+              <View style={styles.footer}>
+                <Text style={styles.info}>by {item.by}</Text>
+                <Text style={styles.info}>Score: {item.score}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
       />
     </View>
   );
@@ -131,19 +166,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  searchInput: {
-    padding: 12,
-    margin: 10,
+  header: {
     backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    paddingBottom: 10,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E5E5EA',
+    margin: 10,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+    paddingHorizontal: 10,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#000', // Ensure text is visible
+  },
+  clearButton: {
+    padding: 5,
+  },
+  clearButtonText: {
+    color: '#8E8E93',
+    fontSize: 18,
   },
   sortContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
-    marginBottom: 10,
   },
   sortLabel: {
     fontSize: 14,
@@ -173,11 +226,37 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5EA',
   },
+  itemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  favicon: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  domain: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#000',
+  },
+  dot: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginHorizontal: 4,
+  },
+  time: {
+    fontSize: 12,
+    color: '#8E8E93',
+  },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
     marginBottom: 8,
+    lineHeight: 22,
   },
   footer: {
     flexDirection: 'row',
@@ -195,6 +274,7 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#8E8E93',
     fontSize: 16,
+    textAlign: 'center',
   },
   mt10: {
     marginTop: 10,
