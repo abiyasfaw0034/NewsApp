@@ -5,4 +5,5 @@ export interface Article {
   score: number;
   time: number;
   url: string;
+  type: string;
 }
